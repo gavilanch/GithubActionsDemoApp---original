@@ -13,6 +13,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      proyecto: GithubActionsDemoApp/GithubActionsDemoApp.csproj
     steps:
      - name: Checkout
        uses: actions/checkout@v4.2.2
@@ -30,3 +34,12 @@ jobs:
 
      - name: Realizar pruebas
        run: dotnet test --no-build
+
+     - name: dotnet publish
+       run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86
+
+     - name: Upload a Build Artifact
+       uses: actions/upload-artifact@v4.4.3
+       with:
+         path: ./miapp
+         name: build
