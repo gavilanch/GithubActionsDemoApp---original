@@ -13,8 +13,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
       proyecto: GithubActionsDemoApp/GithubActionsDemoApp.csproj
     steps:
@@ -43,3 +41,4 @@ jobs:
        with:
          path: ./miapp
          name: build
+         
