@@ -7,8 +7,8 @@ on:
       - '.github/workflows/compilar-y-desplegar.yml'
       - 'GithubActionsDemoApp/**'
       - 'Pruebas/**'
-    branches:
-      - main
+    # branches:
+    #   - main
 
 jobs:
   build:
