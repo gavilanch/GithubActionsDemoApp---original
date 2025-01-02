@@ -1,0 +1,108 @@
+name: Compilar y desplegar
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compilar-desplegar.yml'
+      - 'GithubActionsDemoApp/**'
+      - 'Pruebas/**'
+    branches:
+      - main
+    tags:
+      - '*'
+env:
+  AZURE_APP_SERVICE_NOMBRE: GithubactionDEMOApp
+  AZURE_APP_SERVICE_UBICACION_PAQUETE: '.'
+  VERSION_DOTNET: '8'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      proyecto: GithubActionsDemoApp/GithubActionsDemoApp.csproj
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.2.2
+
+    - name: Instalar .NET
+      uses: actions/setup-dotnet@v4.2.0
+      with:
+        dotnet-version: ${{env.VERSION_DOTNET}}
+
+    - name: Instalar EFCore CLI
+      run: dotnet tool install --global dotnet-ef
+      
+    - name: Obteniendo dependencias
+      run: dotnet restore
+
+    - name: Compilar
+      run: dotnet build --no-restore
+
+    - name: Test y validaciones
+      run: dotnet test --no-build
+
+    - name: dotnet publish
+      run: dotnet publish $proyecto -c Release -o ${{ github.workspace }}/miapp --runtime win-x86
+
+    - name: Generar script de migraciones
+      run: dotnet ef migrations script -i -o migraciones.sql --project $proyecto
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.5.0
+      with:
+        path: ${{ github.workspace }}/miapp
+        name: build
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.5.0
+      with:
+        path: ${{ github.workspace }}/migraciones.sql
+        name: migraciones
+        
+    - name: zip
+      if: startsWith(github.ref, 'refs/tags/')
+      run: zip -r ${{ github.workspace }}/mi_app.zip ${{ github.workspace }}/miapp
+
+    - name: Verificar archivo zip
+      if: startsWith(github.ref, 'refs/tags/')
+      run: ls -lh ${{ github.workspace }}/mi_app.zip
+
+    - name: GH Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ${{ github.workspace }}/mi_app.zip
+        body: "Nuestra aplicación"
+        tag_name: ${{ github.ref_name }}
+
+  deploy: 
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: obtener los artefactos
+        uses: actions/download-artifact@v4.1.8  
+        with:
+          name: build
+
+      - name: obtener los artefactos
+        uses: actions/download-artifact@v4.1.8  
+        with:
+          name: migraciones
+      
+      - name: Azure WebApp
+        uses: Azure/webapps-deploy@v3.0.0
+        with:
+          app-name: ${{env.AZURE_APP_SERVICE_NOMBRE}}
+          publish-profile: ${{secrets.AZURE_PERFIL_PUBLICO}}
+          package: ${{env.AZURE_APP_SERVICE_UBICACION_PAQUETE}}
+
+      - name: Azure SQL Deploy
+        uses: Azure/sql-action@v2.2.1
+        with:
+          connection-string: ${{ secrets.CONNECTION_STRING }}
+          path: ./migraciones.sql
