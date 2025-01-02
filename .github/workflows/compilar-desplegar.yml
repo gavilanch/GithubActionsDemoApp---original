@@ -11,7 +11,6 @@ on:
       - main
     tags:
       - '*'
-    
 
 jobs:
   build:
@@ -39,20 +38,21 @@ jobs:
       run: dotnet test --no-build
 
     - name: dotnet publish
-      run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86
+      run: dotnet publish $proyecto -c Release -o ${{ github.workspace }}/miapp --runtime win-x86
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.5.0
       with:
-        path: ./miapp
+        path: ${{ github.workspace }}/miapp
         name: build
         
     - name: zip
       if: startsWith(github.ref, 'refs/tags/')
-      run: zip -r mi_app.zip ./miapp
+      run: zip -r ${{ github.workspace }}/mi_app.zip ${{ github.workspace }}/miapp
 
     - name: Verificar archivo zip
-      run: ls -lh ./mi_app.zip
+      if: startsWith(github.ref, 'refs/tags/')
+      run: ls -lh ${{ github.workspace }}/mi_app.zip
 
     - name: GH Release
       uses: softprops/action-gh-release@v2
