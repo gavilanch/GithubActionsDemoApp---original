@@ -20,6 +20,7 @@ namespace GithubActionsDemoApp.Controllers
             var personas = await context.Personas.ToListAsync();
             var modelo = new PersonasIndex()
             {
+                // test
                 //Personas = personas
             };
             return View(modelo);
