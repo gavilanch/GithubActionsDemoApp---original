@@ -43,7 +43,8 @@ jobs:
       with:
         path: ./miapp
         name: build
-    - name: ZIP
+        
+    - name: zip
       run: zip -r mi_app.zip ./miapp
 
     - name: GH Release
