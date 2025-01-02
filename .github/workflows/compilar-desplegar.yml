@@ -47,9 +47,12 @@ jobs:
     - name: zip
       run: zip -r mi_app.zip ./miapp
 
+    - name: Verificar archivo zip
+      run: ls -lh ./mi_app.zip
+
     - name: GH Release
-      uses: softprops/action-gh-release@v2.2.0
+      uses: softprops/action-gh-release@v2
       with:
-        files: ./mi_app.zip
+        files: ${{ github.workspace }}/mi_app.zip
         body: "Nuestra aplicación"
         tag_name: ${{ github.ref_name }}
