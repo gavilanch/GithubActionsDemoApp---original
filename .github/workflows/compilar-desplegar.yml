@@ -32,6 +32,9 @@ jobs:
       with:
         dotnet-version: ${{env.VERSION_DOTNET}}
 
+    - name: Instalar EFCore CLI
+      run: dotnet tool install --global dotnet-ef
+      
     - name: Obteniendo dependencias
       run: dotnet restore
 
@@ -44,11 +47,20 @@ jobs:
     - name: dotnet publish
       run: dotnet publish $proyecto -c Release -o ${{ github.workspace }}/miapp --runtime win-x86
 
+    - name: Generar script de migraciones
+      run: dotnet ef migrations script -i -o migraciones.sql --project $proyecto
+
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.5.0
       with:
         path: ${{ github.workspace }}/miapp
         name: build
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.5.0
+      with:
+        path: ${{ github.workspace }}/migraciones.sql
+        name: migraciones
         
     - name: zip
       if: startsWith(github.ref, 'refs/tags/')
@@ -76,9 +88,21 @@ jobs:
         uses: actions/download-artifact@v4.1.8  
         with:
           name: build
+
+      - name: obtener los artefactos
+        uses: actions/download-artifact@v4.1.8  
+        with:
+          name: migraciones
+      
       - name: Azure WebApp
         uses: Azure/webapps-deploy@v3.0.0
         with:
           app-name: ${{env.AZURE_APP_SERVICE_NOMBRE}}
           publish-profile: ${{secrets.AZURE_PERFIL_PUBLICO}}
           package: ${{env.AZURE_APP_SERVICE_UBICACION_PAQUETE}}
+
+      - name: Azure SQL Deploy
+        uses: Azure/sql-action@v2.2.1
+        with:
+          connection-string: ${{ secrets.CONNECTION_STRING }}
+          path: ./migraciones.sql
